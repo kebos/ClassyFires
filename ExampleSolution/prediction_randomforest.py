@@ -19,6 +19,9 @@ import scipy
 def transform_features(x):
     return x
 
+def transform_features_ln(x):
+    return np.log(1+x)
+
 def calculatePrediction():
 		
         dTr = loadFile('../data/trainSetWithWinsFormulaTest.csv')
@@ -36,11 +39,11 @@ def calculatePrediction():
         print "test size: {0} {1} {2}".format(X_test_A.shape, X_test_B.shape, X_test_C.shape)
 
 	X_train_minus = transform_features(X_train_A) - transform_features(X_train_B)
-	X_train_div = transform_features(X_train_A) / (transform_features(X_train_B) + 1)
+	X_train_div = transform_features_ln(X_train_A) / (transform_features_ln(X_train_B) + 1)
 	X_train = np.hstack((X_train_div, X_train_minus, X_train_C))
 
 	X_test_minus = transform_features(X_test_A) - transform_features(X_test_B)
-	X_test_div = transform_features(X_test_A) / (transform_features(X_test_B) + 1)
+	X_test_div = transform_features_ln(X_test_A) / (transform_features_ln(X_test_B) + 1)
 	X_test = np.hstack((X_test_div, X_test_minus, X_test_C))
 
         print "train size: {0}".format(X_train.shape)
