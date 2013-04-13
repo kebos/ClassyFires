@@ -21,37 +21,39 @@ def transform_features(x):
 
 def calculatePrediction():
 		
-        dTr = loadFile('../data/train.csv')
+        dTr = loadFile('../data/trainSetWithWinsFormulaTest.csv')
         y_train = dTr[0]
         X_train_A = dTr[1]
         X_train_B = dTr[2]
+        X_train_C = dTr[3]
 
-        dTes = loadFileTest('../data/test.csv')
+        dTes = loadFileTest('../data/testSetWithFormula.csv')
         X_test_A = dTes[0]
         X_test_B = dTes[1]
+        X_test_C = dTes[2]
 
-        print "train size: {0} {1}".format(X_train_A.shape, X_train_B.shape)
-        print "test size: {0} {1}".format(X_test_A.shape, X_test_B.shape)
+        print "train size: {0} {1} {2}".format(X_train_A.shape, X_train_B.shape, X_train_C.shape)
+        print "test size: {0} {1} {2}".format(X_test_A.shape, X_test_B.shape, X_test_C.shape)
 
-	#def transform_features(x):
-	#    return np.log(1+x)
-	
 	X_train_minus = transform_features(X_train_A) - transform_features(X_train_B)
 	X_train_div = transform_features(X_train_A) / (transform_features(X_train_B) + 1)
-	X_train = np.concatenate((X_train_div, X_train_minus),axis=1)
+	X_train = np.hstack((X_train_div, X_train_minus, X_train_C))
 
 	X_test_minus = transform_features(X_test_A) - transform_features(X_test_B)
 	X_test_div = transform_features(X_test_A) / (transform_features(X_test_B) + 1)
-	X_test = np.concatenate((X_test_div, X_test_minus),axis=1)
+	X_test = np.hstack((X_test_div, X_test_minus, X_test_C))
+
+        print "train size: {0}".format(X_train.shape)
+        print "test size: {0}".format(X_test.shape)
 	
         #In this case we'll use a random forest, but this could be any classifier
         cfr = RandomForestClassifier(n_estimators=100, max_features=math.sqrt(X_train.shape[1]), n_jobs=1)
 
-    #Simple K-Fold cross validation. 5 folds.
+        #Simple K-Fold cross validation.
         cv = cross_validation.KFold(len(X_train), k=10, indices=False)
 
-    #iterate through the training and test cross validation segments and
-    #run the classifier on each one, aggregating the results into a list
+        #iterate through the training and test cross validation segments and
+        #run the classifier on each one, aggregating the results into a list
         results = []
         for traincv, testcv in cv:
             probas = cfr.fit(X_train[traincv], y_train[traincv]).predict_proba(X_train[testcv])
@@ -59,7 +61,7 @@ def calculatePrediction():
             results.append(auc_score(y_train[testcv].tolist(),p_train))
             #results.append( logloss.llfun(target[testcv], [x[1] for x in probas]) )
 
-    #print out the mean of the cross-validated results
+        #print out the mean of the cross-validated results
         print "Results: " + str( np.array(results).mean() )
 
         # Test set prob
@@ -93,27 +95,33 @@ def loadFile(filename):
 	y_train = []
 	X_train_A = []
 	X_train_B = []
+        X_train_C = []
 	
 	for line in trainfile:
+            line = line.replace("-","")
+
 	    splitted = line.rstrip().split(',')
-	    label = int(splitted[0])
-	    A_features = [float(item) for item in splitted[1:12]]
-	    B_features = [float(item) for item in splitted[12:]]
+	    label = int(splitted[4])
+	    A_features = [float(item) for item in splitted[5:16]]
+	    B_features = [float(item) for item in splitted[16:]]
+            C_features = [ float(splitted[1]) ]
 	    y_train.append(label)
 	    X_train_A.append(A_features)
 	    X_train_B.append(B_features)
+            X_train_C.append(C_features)
         trainfile.close()
 	
 	y_train = np.array(y_train)
 	X_train_A = np.array(X_train_A)
 	X_train_B = np.array(X_train_B)
+	X_train_C = np.array(X_train_C)
 	
-        return (y_train, X_train_A, X_train_B)
+        return (y_train, X_train_A, X_train_B, X_train_C)
 
 def loadFileTest(filename):
 	
 	###########################
-	# LOADING TRAINING DATA
+	# LOADING TEST DATA
 	###########################
 	
 	trainfile = open(filename)
@@ -122,49 +130,24 @@ def loadFileTest(filename):
 	y_train = []
 	X_train_A = []
 	X_train_B = []
+        X_train_C = []
 	
 	for line in trainfile:
+            line = line.replace("-","")
 	    splitted = line.rstrip().split(',')
-	    A_features = [float(item) for item in splitted[0:11]]
-	    B_features = [float(item) for item in splitted[11:]]
+	    A_features = [float(item) for item in splitted[4:15]]
+	    B_features = [float(item) for item in splitted[15:]]
+            C_features = [float(splitted[1])]
 	    X_train_A.append(A_features)
 	    X_train_B.append(B_features)
+            X_train_C.append(C_features)
         trainfile.close()
 	
 	X_train_A = np.array(X_train_A)
 	X_train_B = np.array(X_train_B)
+	X_train_C = np.array(X_train_C)
 	
-        return (X_train_A, X_train_B)
+        return (X_train_A, X_train_B, X_train_C)
 
 	
 calculatePrediction()
-
-#
-############################
-## READING TEST DATA
-############################
-#
-#testfile = open('../data/test.csv')
-##ignore the test header
-#testfile.next()
-#
-#X_test_A = []
-#X_test_B = []
-#for line in testfile:
-#    splitted = line.rstrip().split(',')
-#    A_features = [float(item) for item in splitted[0:11]]
-#    B_features = [float(item) for item in splitted[11:]]
-#    X_test_A.append(A_features)
-#    X_test_B.append(B_features)
-#testfile.close()
-#
-#X_test_A = np.array(X_test_A)
-#X_test_B = np.array(X_test_B)
-#
-## transform features in the same way as for training to ensure consistency
-#X_test = transform_features(X_test_A) - transform_features(X_test_B)
-## compute probabilistic predictions
-#p_test = model.predict_proba(X_test)
-##only need the probability of the 1 class
-#p_test = p_test[:,1:2]
-#
