@@ -47,7 +47,7 @@ def calculatePrediction():
         print "test size: {0}".format(X_test.shape)
 	
         #In this case we'll use a random forest, but this could be any classifier
-        cfr = RandomForestClassifier(n_estimators=100, max_features=math.sqrt(X_train.shape[1]), n_jobs=1)
+        cfr = RandomForestClassifier(n_estimators=100, max_features=math.sqrt(X_train.shape[1]), n_jobs=-1)
 
         #Simple K-Fold cross validation.
         cv = cross_validation.KFold(len(X_train), k=10, indices=False)
@@ -76,7 +76,7 @@ def calculatePrediction():
 
         print "label size: test - {0} expected {1}".format(len(p_test), X_test_A.shape[0])
 	
-        for item in p_train:
+        for item in p_test:
             print >>predfile, "{0}".format(str(item))
 	
 	predfile.close()
