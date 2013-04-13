@@ -12,6 +12,7 @@ import numpy as np
 import math
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn import cross_validation
 import scipy
 
 # no transforms
@@ -40,93 +41,58 @@ def calculatePrediction(y_train, X_train_A, X_train_B, name):
 	
 	rowsToPrint = 5
 	
-	print "X_train_A"
-	print X_train_A[1:rowsToPrint,]
-	print "X_train_B"
-	print X_train_B[1:rowsToPrint,]
-	
-	print "x_train_minus {0}".format(X_train_minus.shape)
-	print X_train_minus[1:rowsToPrint,]
-	print "x_train_div {0}".format(X_train_div.shape)
-	print X_train_div[1:rowsToPrint,]
-	
+#	print "X_train_A"
+#	print X_train_A[1:rowsToPrint,]
+#	print "X_train_B"
+#	print X_train_B[1:rowsToPrint,]
+#	
+#	print "x_train_minus {0}".format(X_train_minus.shape)
+#	print X_train_minus[1:rowsToPrint,]
+#	print "x_train_div {0}".format(X_train_div.shape)
+#	print X_train_div[1:rowsToPrint,]
+#	
 	X_train = np.concatenate((X_train_div, X_train_minus),axis=1)
 	
-	print "X_train_concat shape {0}".format(X_train.shape)
-	print X_train[1:rowsToPrint,]
-	
-	#set the training responses
-	#target = [x[0] for x in train]
-	#set the training features
-	#train = [x[1:] for x in train]
-	#read in the test file
-	#realtest = csv_io.read_data("test.csv")
-	
-	print "ytrain shape {0}".format(y_train.shape)
-	print y_train[1:rowsToPrint,]
-	
-	X = [[0, 0], [1, 1], [0, 1]]
-	Y = [0, 1, 1]
-	
-	#print "x {0}".format(X.shape)
-	#print "y {0}".format(Y.shape)
-	
-	clf = RandomForestClassifier(n_estimators=10)
-	clf = clf.fit(X, Y)
-	
-	#print clf
-	
-	print "DONE"
-	
-	# random forest code
-	rf = RandomForestClassifier(n_estimators=10, max_features=math.sqrt(X_train.shape[1]), n_jobs=1)
-	# fit the training data
-	rf.fit(X_train, y_train)
-	# run model against train data
-	# (warning - no x-validation)
-	p_train = rf.predict_proba(X_train)
-	
-	print p_train[0:10]
-	
-	# this is the probability of being 1
-	p_train = [x[1] for x in p_train]
-	
-	#p_train0 = [x[0] for x in p_train]
-	#print p_train0
-	
-	print p_train[0:10]
-	#print p_train0[0:10]
-	print y_train[0:10]
-	
-	#csv_io.write_delimited_file("random_forest_solution.csv", p_train)
-	
-	#print ('Random Forest Complete! You Rock! Submit random_forest_solution.csv to Kaggle')
-	
-	
-	
-	
-	
-	#model = linear_model.LogisticRegression(fit_intercept=False)
-	#model.fit(X_train,y_train)
-	# compute AuC score on the training data (BTW this is kind of useless due to overfitting, but hey, this is only an example solution)
-	#p_train = model.predict_proba(X_train)
-	#p_train = p_train[:,1:2]
-	
-	#print "p_train {0}".format(p_train.shape)
-	
-	print y_train.tolist().__class__.__name__
-	print p_train.__class__.__name__
-	
-	print y_train[0].__class__.__name__
-	print p_train[0].__class__.__name__
-	
-	# highly overfitted
-	aucScore = auc_score(y_train.tolist(),p_train)
-	
-	
-	print 'AuC score on training data: {0}'.format(aucScore)
+        #In this case we'll use a random forest, but this could be any classifier
+        cfr = RandomForestClassifier(n_estimators=10, max_features=math.sqrt(X_train.shape[1]), n_jobs=1)
 
+    #Simple K-Fold cross validation. 5 folds.
+        cv = cross_validation.KFold(len(X_train), k=5, indices=False)
 
+    #iterate through the training and test cross validation segments and
+    #run the classifier on each one, aggregating the results into a list
+        results = []
+        for traincv, testcv in cv:
+            probas = cfr.fit(X_train[traincv], y_train[traincv]).predict_proba(X_train[testcv])
+            p_train = [x[1] for x in probas]
+            results.append(auc_score(y_train[testcv].tolist(),p_train))
+            #results.append( logloss.llfun(target[testcv], [x[1] for x in probas]) )
+
+    #print out the mean of the cross-validated results
+        print "Results: " + str( np.array(results).mean() )
+#
+#
+#
+#	print "X_train_concat shape {0}".format(X_train.shape)
+#	print X_train[1:rowsToPrint,]
+#	
+#	# random forest code
+#	rf = RandomForestClassifier(n_estimators=10, max_features=math.sqrt(X_train.shape[1]), n_jobs=1)
+#	# fit the training data
+#	rf.fit(X_train, y_train)
+#	# run model against train data
+#	# (warning - no x-validation)
+#	p_train = rf.predict_proba(X_train)
+#	
+#	print p_train[0:10]
+#	
+#	# this is the probability of being 1
+#	
+#	# highly overfitted
+#	aucScore = auc_score(y_train.tolist(),p_train)
+#	
+#	print 'AuC score on training data: {0}'.format(aucScore)
+#
 	###########################
 	# WRITING SUBMISSION FILE
 	###########################
