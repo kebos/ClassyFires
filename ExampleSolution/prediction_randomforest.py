@@ -19,45 +19,36 @@ import scipy
 def transform_features(x):
     return x
 
-def calculatePrediction(y_train, X_train_A, X_train_B, name):
+def calculatePrediction():
 		
-	###########################
-	# EXAMPLE BASELINE SOLUTION USING SCIKIT-LEARN
-	#
-	# using scikit-learn LogisticRegression module without fitting intercept
-	# to make it more interesting instead of using the raw features we transform them logarithmically
-	# the input to the classifier will be the difference between transformed features of A and B
-	# the method roughly follows this procedure, except that we already start with pairwise data
-	# http://fseoane.net/blog/2012/learning-to-rank-with-scikit-learn-the-pairwise-transform/
-	###########################
-	
+        dTr = loadFile('../data/train.csv')
+        y_train = dTr[0]
+        X_train_A = dTr[1]
+        X_train_B = dTr[2]
+
+        dTes = loadFileTest('../data/test.csv')
+        X_test_A = dTes[0]
+        X_test_B = dTes[1]
+
+        print "train size: {0} {1}".format(X_train_A.shape, X_train_B.shape)
+        print "test size: {0} {1}".format(X_test_A.shape, X_test_B.shape)
+
 	#def transform_features(x):
 	#    return np.log(1+x)
 	
 	X_train_minus = transform_features(X_train_A) - transform_features(X_train_B)
 	X_train_div = transform_features(X_train_A) / (transform_features(X_train_B) + 1)
-	
-	np.set_printoptions(threshold=np.nan)
-	
-	rowsToPrint = 5
-	
-#	print "X_train_A"
-#	print X_train_A[1:rowsToPrint,]
-#	print "X_train_B"
-#	print X_train_B[1:rowsToPrint,]
-#	
-#	print "x_train_minus {0}".format(X_train_minus.shape)
-#	print X_train_minus[1:rowsToPrint,]
-#	print "x_train_div {0}".format(X_train_div.shape)
-#	print X_train_div[1:rowsToPrint,]
-#	
 	X_train = np.concatenate((X_train_div, X_train_minus),axis=1)
+
+	X_test_minus = transform_features(X_test_A) - transform_features(X_test_B)
+	X_test_div = transform_features(X_test_A) / (transform_features(X_test_B) + 1)
+	X_test = np.concatenate((X_test_div, X_test_minus),axis=1)
 	
         #In this case we'll use a random forest, but this could be any classifier
-        cfr = RandomForestClassifier(n_estimators=10, max_features=math.sqrt(X_train.shape[1]), n_jobs=1)
+        cfr = RandomForestClassifier(n_estimators=100, max_features=math.sqrt(X_train.shape[1]), n_jobs=1)
 
     #Simple K-Fold cross validation. 5 folds.
-        cv = cross_validation.KFold(len(X_train), k=5, indices=False)
+        cv = cross_validation.KFold(len(X_train), k=10, indices=False)
 
     #iterate through the training and test cross validation segments and
     #run the classifier on each one, aggregating the results into a list
@@ -70,37 +61,21 @@ def calculatePrediction(y_train, X_train_A, X_train_B, name):
 
     #print out the mean of the cross-validated results
         print "Results: " + str( np.array(results).mean() )
-#
-#
-#
-#	print "X_train_concat shape {0}".format(X_train.shape)
-#	print X_train[1:rowsToPrint,]
-#	
-#	# random forest code
-#	rf = RandomForestClassifier(n_estimators=10, max_features=math.sqrt(X_train.shape[1]), n_jobs=1)
-#	# fit the training data
-#	rf.fit(X_train, y_train)
-#	# run model against train data
-#	# (warning - no x-validation)
-#	p_train = rf.predict_proba(X_train)
-#	
-#	print p_train[0:10]
-#	
-#	# this is the probability of being 1
-#	
-#	# highly overfitted
-#	aucScore = auc_score(y_train.tolist(),p_train)
-#	
-#	print 'AuC score on training data: {0}'.format(aucScore)
-#
+
+        # Test set prob
+
+        probas = cfr.predict_proba(X_test)
+        p_test = [x[1] for x in probas]
+
 	###########################
 	# WRITING SUBMISSION FILE
 	###########################
-	predfile = open('predictions_{0}.csv'.format(name),'w+')
+	predfile = open('predictions_test.csv','w+')
 
-        print p_train[0:10]
+        print "label size: test - {0} expected {1}".format(len(p_test), X_test_A.shape[0])
 	
-        print >>predfile, ','.join([str(item) for item in p_train])
+        for item in p_train:
+            print >>predfile, "{0}".format(str(item))
 	
 	predfile.close()
 
@@ -112,7 +87,7 @@ def loadFile(filename):
 	# LOADING TRAINING DATA
 	###########################
 	
-	trainfile = open('../data/train.csv')
+	trainfile = open(filename)
 	header = trainfile.next().rstrip().split(',')
 	
 	y_train = []
@@ -134,22 +109,35 @@ def loadFile(filename):
 	X_train_B = np.array(X_train_B)
 	
         return (y_train, X_train_A, X_train_B)
+
+def loadFileTest(filename):
 	
-dataTuple = loadFile("../data/train.csv")
+	###########################
+	# LOADING TRAINING DATA
+	###########################
+	
+	trainfile = open(filename)
+	header = trainfile.next().rstrip().split(',')
+	
+	y_train = []
+	X_train_A = []
+	X_train_B = []
+	
+	for line in trainfile:
+	    splitted = line.rstrip().split(',')
+	    A_features = [float(item) for item in splitted[0:11]]
+	    B_features = [float(item) for item in splitted[11:]]
+	    X_train_A.append(A_features)
+	    X_train_B.append(B_features)
+        trainfile.close()
+	
+	X_train_A = np.array(X_train_A)
+	X_train_B = np.array(X_train_B)
+	
+        return (X_train_A, X_train_B)
 
-y_train = dataTuple[0]
-X_train_A = dataTuple[1]
-X_train_B = dataTuple[2]
-
-calculatePrediction(y_train, X_train_A, X_train_B, "training")
-
-dataTuple = loadFile("../data/test.csv")
-
-y_train = dataTuple[0]
-X_train_A = dataTuple[1]
-X_train_B = dataTuple[2]
-
-calculatePrediction(y_train, X_train_A, X_train_B, "test")
+	
+calculatePrediction()
 
 #
 ############################
