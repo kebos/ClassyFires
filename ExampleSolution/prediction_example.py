@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # SAMPLE SUBMISSION TO THE BIG DATA HACKATHON 13-14 April 2013 'Influencers in a Social Network'
 # .... more info on Kaggle and links to go here
@@ -14,7 +14,7 @@ import numpy as np
 # LOADING TRAINING DATA
 ###########################
 
-trainfile = open('train.csv')
+trainfile = open('../data/train.csv')
 header = trainfile.next().rstrip().split(',')
 
 y_train = []
@@ -60,7 +60,7 @@ print 'AuC score on training data:',auc_score(y_train,p_train.T)
 # READING TEST DATA
 ###########################
 
-testfile = open('test.csv')
+testfile = open('../data/test.csv')
 #ignore the test header
 testfile.next()
 
@@ -90,7 +90,7 @@ p_test = p_test[:,1:2]
 predfile = open('predictions.csv','w+')
 
 print >>predfile,','.join(header)
-for line in numpy.concatenate((p_test,X_test_A,X_test_B),axis=1):
+for line in np.concatenate((p_test,X_test_A,X_test_B),axis=1):
     print >>predfile, ','.join([str(item) for item in line])
 
 predfile.close()
